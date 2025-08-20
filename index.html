@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>Buon compleanno!</title>
+  
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ScatolaIntelligente – Autunno nel Chill</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff8dc;color:#5c3d00}
+  h1{margin:0 0 12px;font-size:22px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+  input,select,button{padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#fffbe6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fffde7}
+  .row{display:flex;justify-content:space-between;align-items:center}
+  small{opacity:.7}
+  .pill{font-size:12px;padding:2px 8px;border-radius:999px;background:#ffe58f;color:#5c3d00}
+  .login{display:flex;justify-content:center;align-items:center;height:100vh;background:#fff3b0}
+  .login-box{background:#fffbe6;padding:24px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+  .login-box h2{text-align:center;margin-bottom:16px}
+  .hidden{display:none}
+  table{border-collapse:collapse;width:100%;margin-top:16px}
+  th,td{border:1px solid #e5e7eb;padding:6px;text-align:center}
+  th{background:#ffe58f}
+  .btn{padding:4px 8px;border-radius:6px;border:none;cursor:pointer}
+  .btn-accept{background:#c3f4c3;color:#004d00}
+  .btn-reject{background:#ffcccc;color:#5c0000}
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+  <div class="login-box">
+    <h2>ScatolaIntelligente</h2>
+    <p><b>Autunno nel Chill</b></p>
+    <input id="user" placeholder="Username" /><br><br>
+    <input id="pass" type="password" placeholder="Password" /><br><br>
+    <button onclick="checkLogin()">Entra</button>
+  </div>
+</div>
+
+<div id="app" class="hidden" style="padding:24px">
+  <h1>Esperienze</h1>
+  <div class="controls">
+    <input id="q" placeholder="Cerca (titolo o città)" />
+    <select id="cat"><option value="">Tutte le categorie</option></select>
+    <input id="max" type="number" min="0" placeholder="Prezzo max (€)" />
+    <button id="reset">Reset</button>
+  </div>
+  <div id="count"><small>0 risultati</small></div>
+  <div id="list" class="grid"></div>
+
+  <h2>Le tue prenotazioni</h2>
+  <div id="myBookings"></div>
+</div>
+
+<div id="admin" class="hidden" style="padding:24px">
+  <h1>Prenotazioni da confermare</h1>
+  <table id="adminTable">
+    <tr><th>Attività</th><th>Data</th><th>Stato</th><th>Azioni</th></tr>
+  </table>
+</div>
+
+<script>
+let selections = JSON.parse(localStorage.getItem('selections')||'[]');
+
+function saveSelections(){
+  localStorage.setItem('selections', JSON.stringify(selections));
+}
+
+function checkLogin(){
+  const u=document.getElementById('user').value;
+  const p=document.getElementById('pass').value;
+  if(u==="Panna" && p==="Auguri"){
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    render();
+    renderMyBookings();
+  } else if(u==="admin" && p==="admin"){
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('admin').classList.remove('hidden');
+    renderAdmin();
+  } else {
+    alert('Credenziali errate');
+  }
+}
+
+const data=[
+  {t:"Degustazione vini in cantina", c:"Cucina", p:39, city:"Chianti", d:"Tour + 3 calici"},
+  {t:"Corso di pasta fresca", c:"Cucina", p:49, city:"Firenze", d:"2h, tagliatelle e ravioli"},
+  {t:"Ingresso terme + relax", c:"Benessere", p:35, city:"Rapolano", d:"3h spa"},
+  {t:"Tour guidato Uffizi", c:"Arte", p:45, city:"Firenze", d:"1h30, guida abilitata"},
+  {t:"Trekking & picnic", c:"Natura", p:29, city:"Garfagnana", d:"mezza giornata"},
+  {t:"Laboratorio ceramica", c:"Arte", p:40, city:"Montelupo", d:"crea e decora"}
+];
+
+function $(s){return document.querySelector(s)}
+const q=$('#q'), cat=$('#cat'), max=$('#max'), list=$('#list'), count=$('#count small');
+new Set(data.map(x=>x.c)).forEach(k=>cat.append(new Option(k,k)));
+[q,cat,max].forEach(el=>el.addEventListener('input',render));
+$('#reset').addEventListener('click',()=>{q.value='';cat.value='';max.value='';render()});
+
+function render(){
+  const Q=q.value.toLowerCase(), C=cat.value, M=+max.value||Infinity;
+  const out=data.filter(x=>(!C||x.c===C)&&x.p<=M&&(`${x.t} ${x.city}`.toLowerCase().includes(Q)));
+  count.textContent=`${out.length} risultato${out.length!==1?'i':''}`;
+  list.innerHTML=out.map(x=>`<div class="card">
+    <div class="row"><b>${x.t}</b><span class="pill">${x.c}</span></div>
+    <div><small>${x.city}</small></div>
+    <p style="margin:6px 0 10px">${x.d}</p>
+    <div class="row"><b>€${x.p}</b>
+      <input type="date" id="date-${x.t}" />
+      <button onclick="choose('${x.t}')">Scegli</button></div>
+  </div>`).join('');
+}
+
+function choose(activity){
+  const dateInput=document.getElementById(`date-${activity}`);
+  if(dateInput && dateInput.value){
+    selections.push({a:activity,d:dateInput.value,status:'in attesa'});
+    saveSelections();
+    alert(`Attività "${activity}" selezionata per il ${dateInput.value}`);
+    renderMyBookings();
+    renderAdmin();
+  } else {
+    alert("Seleziona una data valida");
+  }
+}
+
+function renderMyBookings(){
+  let html="<table><tr><th>Attività</th><th>Data</th><th>Stato</th></tr>";
+  if(selections.length){
+    selections.forEach(s=>{
+      html+=`<tr><td>${s.a}</td><td>${s.d}</td><td>${s.status}</td></tr>`;
+    });
+  } else {
+    html+="<tr><td colspan='3'>Nessuna prenotazione</td></tr>";
+  }
+  html+="</table>";
+  document.getElementById('myBookings').innerHTML=html;
+}
+
+function renderAdmin(){
+  const table=document.getElementById('adminTable');
+  table.innerHTML=`<tr><th>Attività</th><th>Data</th><th>Stato</th><th>Azioni</th></tr>`;
+  selections.forEach((s,i)=>{
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${s.a}</td>
+      <td>${s.d}</td>
+      <td>${s.status}</td>
+      <td>
+        ${s.status==='in attesa'?`<button class='btn btn-accept' onclick='confirmBooking(${i})'>Conferma</button>
+        <button class='btn btn-reject' onclick='rejectBooking(${i})'>Rifiuta</button>`:''}
+      </td>`;
+    table.appendChild(row);
+  });
+}
+
+function confirmBooking(index){
+  selections[index].status='confermata';
+  saveSelections();
+  renderAdmin();
+  renderMyBookings();
+}
+
+function rejectBooking(index){
+  selections[index].status='rifiutata';
+  saveSelections();
+  renderAdmin();
+  renderMyBookings();
+}
+<!-- localStorage.clear(); -->
+  
+render();
+</script>
+
+</body>
+</html>
+<!-- partial -->
+  
+</body>
+</html>
